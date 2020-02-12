@@ -22,7 +22,7 @@ namespace SqlRendering.Tests
 			Sql.RenderString("text").Should().Be("'text'");
 			Sql.RenderString("").Should().Be("''");
 			Sql.RenderString("Bob's").Should().Be("'Bob''s'");
-			Invoking(() => Sql.RenderString(null)).Should().Throw<ArgumentNullException>();
+			Invoking(() => Sql.RenderString(null!)).Should().Throw<ArgumentNullException>();
 		}
 
 		[Test]

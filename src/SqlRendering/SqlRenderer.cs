@@ -13,15 +13,15 @@ namespace SqlRendering
 
 		public string RenderBoolean(bool value) => RenderBooleanCore(value);
 
-		public string RenderLiteral(object value)
+		public string RenderLiteral(object? value)
 		{
-			if (TryRenderLiteral(value, out string text))
-				return text;
+			if (TryRenderLiteral(value, out var text))
+				return text!;
 
-			throw new ArgumentException($"Type cannot be rendered as a literal: {value.GetType().FullName}", nameof(value));
+			throw new ArgumentException($"Type cannot be rendered as a literal: {value!.GetType().FullName}", nameof(value));
 		}
 
-		public bool TryRenderLiteral(object value, out string text)
+		public bool TryRenderLiteral(object? value, out string? text)
 		{
 			text = null;
 
@@ -65,8 +65,8 @@ namespace SqlRendering
 				}
 				else if (format == "literal")
 				{
-					if (m_sqlRenderer.TryRenderLiteral(arg, out string text))
-						return text;
+					if (m_sqlRenderer.TryRenderLiteral(arg, out var text))
+						return text!;
 
 					throw new FormatException($"Format 'literal' cannot be used with type: {arg.GetType().FullName}");
 				}

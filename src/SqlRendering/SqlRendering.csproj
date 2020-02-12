@@ -1,10 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <VersionPrefix>0.1.0</VersionPrefix>
     <TargetFramework>netstandard2.0</TargetFramework>
     <Description>SqlRenderer helps build SQL statements safely.</Description>
     <PackageTags>sql renderer builder</PackageTags>
+    <IsPackable>true</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
 </Project>
