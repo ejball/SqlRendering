@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
 using static SqlRendering.Tests.FluentAction;
@@ -51,7 +53,19 @@ namespace SqlRendering.Tests
 		}
 
 		[Test]
-		public void FormatSql()
+		public void ListOfLiterals()
+		{
+			Sql.List(Sql.Literal("hi"), Sql.Null, Sql.Literal(42)).ToString().Should().Be("'hi', NULL, 42");
+		}
+
+		[Test]
+		public void EmptyList()
+		{
+			Invoking(() => Sql.List()).Should().Throw<ArgumentException>();
+		}
+
+		[Test]
+		public void FormatLiteral()
 		{
 			var id = 123;
 			var name = "it's";
@@ -72,6 +86,16 @@ namespace SqlRendering.Tests
 		{
 			Sql.Format($"select * from widgets where created is {Sql.Null};")
 				.Should().Be("select * from widgets where created is NULL;");
+		}
+
+		[Test]
+		public void FormatList()
+		{
+			var ids = new List<string> { "one", "two", "three" };
+			Sql.Format($"select * from widgets where id in ({ids.Select(Sql.Literal):list});")
+				.Should().Be("select * from widgets where id in ('one', 'two', 'three');");
+			Sql.Format($"select * from widgets where id in ({ids:literal-list});")
+				.Should().Be("select * from widgets where id in ('one', 'two', 'three');");
 		}
 
 		[Test]

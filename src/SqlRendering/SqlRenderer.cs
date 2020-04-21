@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 
 namespace SqlRendering
 {
@@ -28,6 +30,16 @@ namespace SqlRendering
 
 		public SqlFragment LiteralOrNull(object? value) => value is null ? Null : Literal(value);
 
+		public SqlFragment List(params SqlFragment[] fragments) => List(fragments.AsEnumerable());
+
+		public SqlFragment List(IEnumerable<SqlFragment> fragments)
+		{
+			var sqls = fragments.Select(x => x.ToString()).ToList();
+			if (sqls.Count == 0)
+				throw new ArgumentException("List must not be empty.", nameof(fragments));
+			return Raw(string.Join(", ", sqls));
+		}
+
 		protected virtual string RenderNullCore() => "NULL";
 
 		protected virtual string RenderStringCore(string value) => $"'{value.Replace("'", "''")}'";
@@ -42,16 +54,33 @@ namespace SqlRendering
 
 			public string Format(string? format, object? arg, IFormatProvider formatProvider)
 			{
-				if (format == "raw")
-					return arg is string stringValue ? stringValue : throw new FormatException("Format 'raw' can only be used with strings.");
-				else if (format == "literal")
+				switch (format)
+				{
+				case "raw":
+					if (arg is string stringValue)
+						return stringValue;
+					throw new FormatException("Format 'raw' can only be used with strings.");
+
+				case "literal":
 					return m_renderer.LiteralOrNull(arg).ToString();
-				else if (format is object)
-					throw new FormatException($"Format '{format}' is not supported.");
-				else if (arg is SqlFragment fragment)
-					return fragment.ToString();
-				else
+
+				case "list":
+					if (arg is IEnumerable<SqlFragment> list)
+						return m_renderer.List(list).ToString();
+					throw new FormatException("Format 'list' can only be used with a collection of fragments.");
+
+				case "literal-list":
+					if (arg is IEnumerable<object> literalList)
+						return m_renderer.List(literalList.Select(m_renderer.LiteralOrNull)).ToString();
+					throw new FormatException("Format 'literal-list' can only be used with a collection of literals.");
+
+				default:
+					if (format is object)
+						throw new FormatException($"Format '{format}' is not supported.");
+					if (arg is SqlFragment fragment)
+						return fragment.ToString();
 					throw new FormatException("Argument requires a format, e.g. {value:literal}.");
+				}
 			}
 
 			private readonly SqlRenderer m_renderer;
