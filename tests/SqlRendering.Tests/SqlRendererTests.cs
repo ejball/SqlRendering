@@ -13,7 +13,7 @@ namespace SqlRendering.Tests
 		[Test]
 		public void NullLiteral()
 		{
-			Sql.RenderNull().Should().Be("NULL");
+			Sql.Null.ToString().Should().Be("NULL");
 		}
 
 		[Test]
@@ -62,6 +62,13 @@ namespace SqlRendering.Tests
 		{
 			Invoking(() => Sql.Format($"select * from widgets where created = {DateTime.UtcNow:raw}"))
 				.Should().Throw<FormatException>();
+		}
+
+		[Test]
+		public void FormatFragment()
+		{
+			Sql.Format($"select * from widgets where created is {Sql.Null};")
+				.Should().Be("select * from widgets where created is NULL;");
 		}
 
 		[Test]

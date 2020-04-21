@@ -7,7 +7,7 @@ namespace SqlRendering
 	{
 		public string Format(FormattableString formattable) => formattable.ToString(new SqlFormatProvider(this));
 
-		public string RenderNull() => RenderNullCore();
+		public SqlFragment Null => new SqlFragment(RenderNullCore());
 
 		public string RenderString(string value) => RenderStringCore(value ?? throw new ArgumentNullException(nameof(value)));
 
@@ -73,6 +73,10 @@ namespace SqlRendering
 				else if (format != null)
 				{
 					throw new FormatException($"Format '{format}' is not supported.");
+				}
+				else if (arg is SqlFragment fragment)
+				{
+					return fragment.ToString();
 				}
 				else
 				{
