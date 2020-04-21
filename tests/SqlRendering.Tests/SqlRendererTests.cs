@@ -14,45 +14,48 @@ namespace SqlRendering.Tests
 		public void NullLiteral()
 		{
 			Sql.Null.ToString().Should().Be("NULL");
+			Sql.LiteralOrNull(null).ToString().Should().Be("NULL");
 		}
 
 		[Test]
 		public void StringLiterals()
 		{
-			Sql.RenderString("text").Should().Be("'text'");
-			Sql.RenderString("").Should().Be("''");
-			Sql.RenderString("Bob's").Should().Be("'Bob''s'");
-			Invoking(() => Sql.RenderString(null!)).Should().Throw<ArgumentNullException>();
+			Sql.Literal("text").ToString().Should().Be("'text'");
+			Sql.Literal("").ToString().Should().Be("''");
+			Sql.Literal("Bob's").ToString().Should().Be("'Bob''s'");
 		}
 
 		[Test]
 		public void BooleanLiterals()
 		{
-			Sql.RenderBoolean(true).Should().Be("1");
-			Sql.RenderBoolean(false).Should().Be("0");
+			Sql.Literal(true).ToString().Should().Be("1");
+			Sql.Literal(false).ToString().Should().Be("0");
 		}
 
 		[Test]
-		public void ObjectLiterals()
+		public void NumberLiterals()
 		{
-			Sql.RenderLiteral(null).Should().Be("NULL");
-			Sql.RenderLiteral("text").Should().Be("'text'");
-			Sql.RenderLiteral(true).Should().Be("1");
-			Sql.RenderLiteral(42).Should().Be("42");
-			Sql.RenderLiteral(-42L).Should().Be("-42");
-			Sql.RenderLiteral(short.MinValue).Should().Be("-32768");
-			Sql.RenderLiteral(3.14f).Should().Be("3.14");
-			Sql.RenderLiteral(3.1415).Should().Be("3.1415");
-			Sql.RenderLiteral(867.5309m).Should().Be("867.5309");
-			Invoking(() => Sql.RenderLiteral(new object())).Should().Throw<ArgumentException>();
+			Sql.Literal(42).ToString().Should().Be("42");
+			Sql.Literal(-42L).ToString().Should().Be("-42");
+			Sql.Literal(short.MinValue).ToString().Should().Be("-32768");
+			Sql.Literal(3.14f).ToString().Should().Be("3.14");
+			Sql.Literal(3.1415).ToString().Should().Be("3.1415");
+			Sql.Literal(867.5309m).ToString().Should().Be("867.5309");
+		}
+
+		[Test]
+		public void BadLiterals()
+		{
+			Invoking(() => Sql.Literal(new object())).Should().Throw<ArgumentException>();
+			Invoking(() => Sql.LiteralOrNull(new object())).Should().Throw<ArgumentException>();
 		}
 
 		[Test]
 		public void FormatSql()
 		{
-			int id = 123;
-			string name = "it's";
-			string select = "select * from widgets";
+			var id = 123;
+			var name = "it's";
+			var select = "select * from widgets";
 			Sql.Format($"{select:raw} where id = {id:literal} and name = {name:literal}")
 				.Should().Be("select * from widgets where id = 123 and name = 'it''s'");
 		}
@@ -74,7 +77,7 @@ namespace SqlRendering.Tests
 		[Test]
 		public void MissingFormat()
 		{
-			string name = "it's";
+			var name = "it's";
 			Invoking(() => Sql.Format($"select * from widgets where name = {name}"))
 				.Should().Throw<FormatException>();
 		}
@@ -82,7 +85,7 @@ namespace SqlRendering.Tests
 		[Test]
 		public void UnknownFormat()
 		{
-			string name = "it's";
+			var name = "it's";
 			Invoking(() => Sql.Format($"select * from widgets where name = {name:liberal}"))
 				.Should().Throw<FormatException>();
 		}

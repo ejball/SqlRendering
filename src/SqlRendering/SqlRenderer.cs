@@ -7,35 +7,26 @@ namespace SqlRendering
 	{
 		public string Format(FormattableString formattable) => formattable.ToString(new SqlFormatProvider(this));
 
-		public SqlFragment Null => new SqlFragment(RenderNullCore());
+		public SqlFragment Raw(string value) => new SqlFragment(value);
 
-		public string RenderString(string value) => RenderStringCore(value ?? throw new ArgumentNullException(nameof(value)));
+		public SqlFragment Null => Raw(RenderNullCore());
 
-		public string RenderBoolean(bool value) => RenderBooleanCore(value);
-
-		public string RenderLiteral(object? value)
+		public SqlFragment Literal(object value)
 		{
-			if (TryRenderLiteral(value, out var text))
-				return text!;
-
-			throw new ArgumentException($"Type cannot be rendered as a literal: {value!.GetType().FullName}", nameof(value));
+			switch (value ?? throw new ArgumentNullException(nameof(value)))
+			{
+			case string stringValue:
+				return Raw(RenderStringCore(stringValue));
+			case bool boolValue:
+				return Raw(RenderBooleanCore(boolValue));
+			case IFormattable formattable when value is int || value is long || value is short || value is float || value is double || value is decimal:
+				return Raw(formattable.ToString(null, CultureInfo.InvariantCulture));
+			default:
+				throw new ArgumentException($"Type cannot be rendered as a literal: {value.GetType().FullName}", nameof(value));
+			}
 		}
 
-		public bool TryRenderLiteral(object? value, out string? text)
-		{
-			text = null;
-
-			if (value == null)
-				text = RenderNullCore();
-			else if (value is string stringValue)
-				text = RenderStringCore(stringValue);
-			else if (value is bool boolValue)
-				text = RenderBooleanCore(boolValue);
-			else if (value is IFormattable formattable && (value is int || value is long || value is short || value is float || value is double || value is decimal))
-				text = formattable.ToString(null, CultureInfo.InvariantCulture);
-
-			return text != null;
-		}
+		public SqlFragment LiteralOrNull(object? value) => value is null ? Null : Literal(value);
 
 		protected virtual string RenderNullCore() => "NULL";
 
@@ -45,46 +36,25 @@ namespace SqlRendering
 
 		private sealed class SqlFormatProvider : IFormatProvider, ICustomFormatter
 		{
-			public SqlFormatProvider(SqlRenderer sqlRenderer)
-			{
-				m_sqlRenderer = sqlRenderer;
-			}
+			public SqlFormatProvider(SqlRenderer renderer) => m_renderer = renderer;
 
 			public object GetFormat(Type formatType) => this;
 
-			public string Format(string format, object arg, IFormatProvider formatProvider)
+			public string Format(string? format, object? arg, IFormatProvider formatProvider)
 			{
 				if (format == "raw")
-				{
-					if (arg is string stringValue)
-						return stringValue;
-					if (arg == null)
-						return "";
-
-					throw new FormatException("Format 'raw' can only be used with strings.");
-				}
+					return arg is string stringValue ? stringValue : throw new FormatException("Format 'raw' can only be used with strings.");
 				else if (format == "literal")
-				{
-					if (m_sqlRenderer.TryRenderLiteral(arg, out var text))
-						return text!;
-
-					throw new FormatException($"Format 'literal' cannot be used with type: {arg.GetType().FullName}");
-				}
-				else if (format != null)
-				{
+					return m_renderer.LiteralOrNull(arg).ToString();
+				else if (format is object)
 					throw new FormatException($"Format '{format}' is not supported.");
-				}
 				else if (arg is SqlFragment fragment)
-				{
 					return fragment.ToString();
-				}
 				else
-				{
-					throw new FormatException($"Argument of type '{arg?.GetType().FullName}' requires a format, e.g. {{value:literal}}.");
-				}
+					throw new FormatException("Argument requires a format, e.g. {value:literal}.");
 			}
 
-			private readonly SqlRenderer m_sqlRenderer;
+			private readonly SqlRenderer m_renderer;
 		}
 	}
 }
